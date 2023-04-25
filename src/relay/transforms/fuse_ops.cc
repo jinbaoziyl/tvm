@@ -334,6 +334,9 @@ class FuseMutator : private MixedModeMutator {
   Expr Transform(const Expr& body, int fuse_opt_level, size_t max_fuse_depth, bool link_params) {
     // setup the group map.
     auto graph = IndexedForwardGraphCreator::Create(&arena_, body);
+    // visualize the indexed forward graph, added by Archermmt
+    graph.visualize("indexed_forward_graph.prototxt");
+    
     auto groups = GraphPartitioner(&arena_, fuse_opt_level, max_fuse_depth).Partition(graph);
     for (size_t nid = 0; nid < graph.post_dfs_order.size(); ++nid) {
       ICHECK(graph.post_dfs_order[nid]->ref != nullptr);

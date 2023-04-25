@@ -114,6 +114,7 @@ Doc RelayTextPrinter::PrintFinal(const ObjectRef& node) {
   } else if (node.as<ExprNode>()) {
     Expr expr = Downcast<Expr>(node);
     dg_ = DependencyGraph::Create(&arena_, expr);
+    dg_.visualize("dependency.prototxt");
   }
 
   Doc doc;

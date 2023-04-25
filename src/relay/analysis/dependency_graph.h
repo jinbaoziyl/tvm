@@ -68,6 +68,76 @@ class DependencyGraph {
    */
   static DependencyGraph Create(support::Arena* arena, const Expr& body);
 
+  // for DependencyGraph, add to DependencyGraph class
+  void visualize(const std::string& file_path) {
+    std::unordered_map<Node*, std::string> node_names;
+    int cnt = 0;
+    std::ofstream out(file_path, std::ofstream::binary);
+    if (out.is_open()) {
+      std::streambuf* coutbuf = std::cout.rdbuf();
+      std::cout.rdbuf(out.rdbuf());
+      // build map
+      std::unordered_map<Node*, Expr> node_to_expr;
+      for (auto expr_node : this->expr_node) {
+        node_to_expr[expr_node.second] = expr_node.first;
+      }
+      // write the nodes
+      std::cout << "name : \"dependency\"\n";
+      for (auto it = this->post_dfs_order.rbegin(); it != this->post_dfs_order.rend(); ++it) {
+        DependencyGraph::Node* n = *it;
+        auto iit = n->parents.head;
+        if (node_names.find(n) == node_names.end()) {
+          node_names[n] = "Node_" + std::to_string(cnt++);
+        }
+        std::cout << "layer {  name:\"" << node_names[n] << "\"\n";
+        // add topo information
+        std::cout << "  top : \"" << node_names[n] << "\"\n";
+        if (iit != nullptr) {
+          for (; iit != nullptr; iit = iit->next) {
+            std::cout << "  bottom : \"" << node_names[iit->value] << "\"\n";
+          }
+        }
+        // add type
+        Expr expr = node_to_expr[n];
+        if (!expr.defined()) {
+          std::cout << "  type : \"Connect\"\n";
+        } else if (expr.as<CallNode>()) {
+          auto call = Downcast<Call>(expr);
+          auto op = Downcast<Op>(call->op);
+          std::cout << "  type : \"Call_" << op->name << "\"\n";
+        } else if (expr.as<FunctionNode>()) {
+          std::cout << "  type : \"Function\"\n";
+        } else if (expr.as<TupleGetItemNode>()) {
+          auto node = Downcast<TupleGetItem>(expr);
+          std::cout << "  type : \"TupleGetItemNode\"\n";
+        } else if (expr.as<OpNode>()) {
+          auto node = Downcast<Op>(expr);
+          std::cout << "  type : \"Op_" << node->name << "\"\n";
+        } else if (expr.as<VarNode>()) {
+          auto node = Downcast<Var>(expr);
+          std::cout << "  type : \"Var\""
+                    << "\n";
+        } else {
+          std::cout << "  type : \"UNKNOWN\""
+                    << "\n";
+        }
+        // add attributes
+        std::cout << "  layer_param : {\n";
+        std::cout << "    addr : \"" << n << "\"\n";
+        if (expr.as<TupleGetItemNode>()) {
+          auto node = Downcast<TupleGetItem>(expr);
+          std::cout << "    index : " << node->index << "\n";
+        } else if (expr.as<VarNode>()) {
+          auto node = Downcast<Var>(expr);
+          std::cout << "    name_hint : \"" << node->name_hint() << "\"\n";
+        }
+        std::cout << "  }\n}\n";
+      }
+      std::cout.rdbuf(coutbuf);
+      out.close();
+    }
+  }
+
  private:
   class Creator;
 };
